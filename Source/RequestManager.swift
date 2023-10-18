@@ -172,8 +172,16 @@ public class RequestTaskManager {
 
     /// 缓存data是否存在
     public func cacheDataIsExist()->Bool {
-        let data = CacheManager.default.objectSync(forKey: cacheKey)?.data
-        return data != nil
+//        let data = CacheManager.default.objectSync(forKey: cacheKey)?.data
+//        return data != nil
+        return false
+    }
+    
+    /// 获取本地文件的缓存地址 hdx
+    public func fetchLocalCahceFilePath(complte: @escaping (String?) -> ())  {
+        return CacheManager.default.fetchLocalCahceFilePath(cacheKey) { filePath in
+            complte(filePath)
+        }
     }
 
     /// 是否缓存数据
@@ -283,7 +291,7 @@ public class DaisyResponse {
             if cache { /// 写入缓存
                 var model = CacheModel()
                 model.data = response.data
-                CacheManager.default.setObject(model, forKey: cacheKey)
+                CacheManager.default.setObject(model.data!, forKey: cacheKey)
             }
         case .failure(let error):
             if openResultLog {
@@ -321,7 +329,7 @@ public class DaisyJsonResponse: DaisyResponse {
     /// 获取缓存json
     @discardableResult
     fileprivate func cacheJson()->Any? {
-        if let data = CacheManager.default.objectSync(forKey: cacheKey)?.data,
+        if let data = CacheManager.default.objectSync(forKey: cacheKey),
            let json = try? JSONSerialization.jsonObject(with: data, options: [])
         {
             if openResultLog {
@@ -352,7 +360,7 @@ public class DaisyStringResponse: DaisyResponse {
 
     @discardableResult
     fileprivate func cacheString()->String? {
-        if let data = CacheManager.default.objectSync(forKey: cacheKey)?.data,
+        if let data = CacheManager.default.objectSync(forKey: cacheKey),
            let str = String(data: data, encoding: .utf8)
         {
             return str
@@ -388,10 +396,11 @@ public class DaisyDataResponse: DaisyResponse {
             self.response(response: response, completion: completion)
         })
     }
+    
 
     @discardableResult
     fileprivate func cacheData()->Data? {
-        if let data = CacheManager.default.objectSync(forKey: cacheKey)?.data {
+        if let data = CacheManager.default.objectSync(forKey: cacheKey) {
             return data
         } else {
             if openResultLog {
@@ -414,4 +423,17 @@ public class DaisyDataResponse: DaisyResponse {
             self.responseCache(response: response, completion: completion)
         }
     }
+}
+
+
+// hdx文件下载
+public extension DaisyDataResponse {
+//    /// 响应Data
+//    func downloadData(queue: DispatchQueue, completion: @escaping (DaisyValue<Data>)->()) {
+//        dataRequest.
+//
+//        responseData(queue: queue, completionHandler: { response in
+//            self.response(response: response, completion: completion)
+//        })
+//    }
 }

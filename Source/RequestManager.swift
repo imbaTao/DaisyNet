@@ -179,6 +179,7 @@ public class RequestTaskManager {
     
     /// 获取本地文件的缓存地址 hdx
     public func fetchLocalCahceFilePath(complte: @escaping (String?) -> ())  {
+        print("fetchLocalCahceFilePath的key是\(cacheKey)")
         return CacheManager.default.fetchLocalCahceFilePath(cacheKey) { filePath in
             complte(filePath)
         }

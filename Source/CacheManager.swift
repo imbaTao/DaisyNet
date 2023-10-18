@@ -41,124 +41,6 @@ struct CacheModel: Codable {
     init() {}
 }
 
-//class CacheManager: NSObject {
-//    static let `default` = CacheManager()
-//    /// Manage storage
-//    private var storage: Storage<String, CacheModel>?
-//
-//    /// init
-//    override init() {
-//        super.init()
-//        expiryConfiguration()
-//    }
-//
-//    var expiry: DaisyExpiry = .never
-//
-//    // hdx
-//    public func fetchLocalCahceFilePath(_ key: String, complte: @escaping (String?) -> ()) {
-//        if let storage = storage {
-//            storage.async.entry(forKey: key, completion: { result in
-//                switch result {
-//                case let .value(model):
-//                    print("fetchLocalCahceFilePath地址\(model.filePath)")
-//                    complte(model.filePath)
-//
-//                case let .error(error):
-//                    complte(nil)
-//                    print("fetchLocalCahceFilePath崩溃了")
-//                default:
-//                    complte(nil)
-//                    print("fetchLocalCahceFilePath崩溃了")
-//                    break
-//                }
-//            })
-//        }else {
-//            complte(nil)
-//        }
-//    }
-//
-//    func expiryConfiguration(expiry: DaisyExpiry = .never) {
-//        self.expiry = expiry
-//        let diskConfig = DiskConfig(
-//            name: "DaisyCache",
-//            expiry: expiry.expiry
-//        )
-//        let memoryConfig = MemoryConfig(expiry: expiry.expiry)
-//        do {
-////            storage = try Storage(diskConfig: diskConfig, memoryConfig: memoryConfig, transformer: TransformerFactory.forCodable(ofType: CacheModel.self))
-//
-//            storage = try Storage(diskConfig: diskConfig, memoryConfig: memoryConfig, transformer: TransformerFactory.forData())
-//        } catch {
-//            DaisyLog(error)
-//        }
-//    }
-//
-//    /// 清除所有缓存
-//    ///
-//    /// - Parameter completion: completion
-//    func removeAllCache(completion: @escaping (_ isSuccess: Bool) -> ()) {
-//        storage?.async.removeAll(completion: { result in
-//            DispatchQueue.main.async {
-//                switch result {
-//                case .value: completion(true)
-//                case .error: completion(false)
-//                }
-//            }
-//        })
-//    }
-//
-//    /// 根据key值清除缓存
-//    ///
-//    /// - Parameters:
-//    ///   - cacheKey: cacheKey
-//    ///   - completion: completion
-//    func removeObjectCache(_ cacheKey: String, completion: @escaping (_ isSuccess: Bool) -> ()) {
-//        storage?.async.removeObject(forKey: cacheKey, completion: { result in
-//            DispatchQueue.main.async {
-//                switch result {
-//                case .value: completion(true)
-//                case .error: completion(false)
-//                }
-//            }
-//        })
-//    }
-//
-//    /// 读取缓存
-//    ///
-//    /// - Parameter key: key
-//    /// - Returns: model
-//    func objectSync(forKey key: String) -> CacheModel? {
-//        do {
-//            /// 过期清除缓存
-//            if let isExpire = try storage?.isExpiredObject(forKey: key), isExpire {
-//                removeObjectCache(key) { _ in }
-//                return nil
-//            } else {
-//                return (try storage?.object(forKey: key)) ?? nil
-//            }
-//        } catch {
-//            return nil
-//        }
-//    }
-//
-//    /// 异步缓存
-//    ///
-//    /// - Parameters:
-//    ///   - object: model
-//    ///   - key: key
-//    func setObject(_ object: CacheModel, forKey key: String) {
-//        storage?.async.setObject(object, forKey: key, expiry: nil, completion: { result in
-//            switch result {
-//            case .value:
-//                DaisyLog("缓存成功")
-//            case .error(let error):
-//                DaisyLog("缓存失败: \(error)")
-//            }
-//        })
-//    }
-//}
-
-
 class CacheManager: NSObject {
     static let `default` = CacheManager()
     /// Manage storage
@@ -172,25 +54,20 @@ class CacheManager: NSObject {
 
     var expiry: DaisyExpiry = .never
     
-    // hdx
+    // hdx,这个只获取本地记录数据的url比较特殊，只从硬盘的仓库中拿地址
     public func fetchLocalCahceFilePath(_ key: String, complte: @escaping (String?) -> ()) {
-        if let storage = storage {
-            storage.async.entry(forKey: key, completion: { result in
-                switch result {
-                case let .value(model):
-                    print("fetchLocalCahceFilePath地址\(model.filePath)")
-                    complte(model.filePath)
-       
-                case let .error(error):
-                    complte(nil)
-                    print("fetchLocalCahceFilePath崩溃了")
-                default:
-                    complte(nil)
-                    print("fetchLocalCahceFilePath崩溃了")
-                    break
-                }
-            })
-        }else {
+        guard let storage = storage else {
+            complte(nil)
+            return
+        }
+        
+        do {
+            if let localFilePath = try storage.async.innerStorage.diskStorage.entry(forKey: key).filePath {
+                complte(localFilePath)
+            }else {
+                complte(nil)
+            }
+        }catch {
             complte(nil)
         }
     }
@@ -204,7 +81,6 @@ class CacheManager: NSObject {
         let memoryConfig = MemoryConfig(expiry: expiry.expiry)
         do {
 //            storage = try Storage(diskConfig: diskConfig, memoryConfig: memoryConfig, transformer: TransformerFactory.forCodable(ofType: CacheModel.self))
-            
             storage = try Storage(diskConfig: diskConfig, memoryConfig: memoryConfig, transformer: TransformerFactory.forData())
         } catch {
             DaisyLog(error)
